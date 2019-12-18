@@ -1,0 +1,39 @@
+{
+  "name": "pcst",
+  "version": "0.0.1",
+  "description": "package conflict solver in npm",
+  "main": "dist/cli.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node_modules/.bin/ts-node main.ts",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sh4869/pcs.git"
+  },
+  "author": "sh4869",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sh4869/pcs/issues"
+  },
+  "homepage": "https://github.com/sh4869/pcs#readme",
+  "dependencies": {
+    "all-the-package-names": "^1.3905.0",
+    "npm-registry-package-info": "^1.0.5",
+    "package-json": "^6.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^12.7.2",
+    "@types/npm-registry-package-info": "^1.0.0",
+    "@typescript-eslint/eslint-plugin": "^2.0.0",
+    "@typescript-eslint/parser": "^2.0.0",
+    "eslint": "^6.2.2",
+    "eslint-config-prettier": "^6.1.0",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-prettier": "^3.1.0",
+    "prettier": "^1.18.2",
+    "ts-node": "^8.1.0",
+    "typescript": "^3.4.5"
+  }
+}
