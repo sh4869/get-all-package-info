@@ -32,19 +32,20 @@ const getPackageInfo = async (opt: pkginfo.Options, count: number = 0): Promise<
 const INVALID_PATH_REGEX = /[\u0000-\u0020\u0100-\uffff]/;
 
 const PERNUM = 100;
-const MAX = 5000;
+const MAX = 20000;
 const main = async () => {
   const v = names as string[];
   const separte = Math.floor(v.length / MAX);
-  console.log(`file count: ${separte}`);
+  console.log(`package count: ${v.length},file count: ${separte}`);
   for (let count = 0; count < separte; count++) {
     console.log(`start ${count} time...`);
     const start = count * MAX;
     const goal = (count + 1) * MAX - 1;
+    console.log(start,goal)
     const arr: Promise<PkgDataInfo>[] = [];
     for (let i = start; i < goal; i += PERNUM) {
       const option: pkginfo.Options = {
-        packages: v.slice(i, i + PERNUM > goal ? goal : i + PERNUM).filter(name => !INVALID_PATH_REGEX.test(name))
+        packages: v.slice(i, i + PERNUM > goal ? goal : i + PERNUM).map(x => encodeURIComponent(x))
       };
       arr.push(getPackageInfo(option));
     }
@@ -52,23 +53,16 @@ const main = async () => {
       .then(v => {
         console.log(`fetch all library... ${v.length}`);
         const result = v.filter(x => x !== undefined && x !== null)
-          .map(x =>
-            Array.from(Object.keys(x)) // package name array
-              .map(name => {
-                if (x[name].versions) {
-                  return {
+          .map(x => Array.from(Object.keys(x)).filter(name => x[name].versions) // package name array
+              .map(name =>({
                     name: name,
                     versions: Array.from(Object.keys(x[name].versions)).map(version => ({
                       version: version,
                       dep: x[name].versions[version].dependencies
                     }))
-                  };
-                } else {
-                  return {};
-                }
-              })
-          )
-          .reduce((p, v) => Object.assign(v, p), {});
+                  })
+              ))
+          .reduce((p, v) => p.concat(v), []);
         console.log("writing file...");
         writeFileSync(`result/${count}.json`, JSON.stringify(result, null, 4));
       })
