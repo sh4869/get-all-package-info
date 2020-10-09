@@ -92,3 +92,5 @@ typings/
 dist/
 result/*
 !result/.gitkeep
+log*
+names.json

@@ -1,8 +1,7 @@
 import pkginfo = require("npm-registry-package-info");
 import packagejson = require("package-json");
-import { writeFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 import util = require("util");
-import names = require("./names.json");
 
 interface PkgData {
   versions: { [key: string]: packagejson.AbbreviatedVersion };
@@ -13,14 +12,13 @@ const sleep: (number: number) => Promise<void> = msec => new Promise<void>(resol
 
 const getPackageInfo = async (opt: pkginfo.Options, sleeptime, count = 0): Promise<PkgDataInfo> => {
   try {
-    await sleep(sleeptime * 300);
+    await sleep(sleeptime * 100);
     const func = util.promisify(pkginfo);
-    const result = await func(opt)
-      .then(v => v.data)
-      .catch(e => {
-        console.log(e.toString());
-        throw e;
-      });
+    const s = sleep(60000);
+    const result = await Promise.race([s, func(opt).then(v => v.data)]);
+    if (result == undefined) {
+      throw Error("timeout!");
+    }
     return result;
   } catch {
     if (count > 3) {
@@ -33,10 +31,10 @@ const getPackageInfo = async (opt: pkginfo.Options, sleeptime, count = 0): Promi
   }
 };
 
-const PERNUM = 50;
+const PERNUM = 25;
 const MAX = 20000;
 const main = async () => {
-  const v = names as string[];
+  const v = JSON.parse(readFileSync("names.json").toString()) as string[];
   const separte = Math.floor(v.length / MAX);
   console.log(`package count: ${v.length},file count: ${separte}`);
   for (let count = 0; count <= separte; count++) {
