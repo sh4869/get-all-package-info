@@ -3,6 +3,7 @@ import packagejson = require("package-json");
 import { readFileSync, writeFileSync } from "fs";
 import util = require("util");
 
+
 interface PkgData {
   versions: { [key: string]: packagejson.AbbreviatedVersion };
 }
@@ -12,7 +13,7 @@ const sleep: (number: number) => Promise<void> = msec => new Promise<void>(resol
 
 const getPackageInfo = async (opt: pkginfo.Options, sleeptime, count = 0): Promise<PkgDataInfo> => {
   try {
-    await sleep(sleeptime * 100);
+    await sleep(sleeptime * 50);
     const func = util.promisify(pkginfo);
     const s = sleep(60000);
     const result = await Promise.race([s, func(opt).then(v => v.data)]);
@@ -26,7 +27,7 @@ const getPackageInfo = async (opt: pkginfo.Options, sleeptime, count = 0): Promi
       return {};
     }
     console.log(`retry: ${opt.packages[0]},${opt.packages[1]},...`);
-    await sleep(1000);
+    await sleep(500);
     return getPackageInfo(opt, sleeptime, count + 1);
   }
 };
@@ -34,10 +35,12 @@ const getPackageInfo = async (opt: pkginfo.Options, sleeptime, count = 0): Promi
 const PERNUM = 25;
 const MAX = 20000;
 const main = async () => {
-  const v = JSON.parse(readFileSync("names.json").toString()) as string[];
+  // 引数からファイル番号を受け取れるように
+  const start = process.argv.length > 2 ? Number(process.argv[2]) : 0
+  const v = JSON.parse(readFileSync("all-the-package-names/names.json").toString()) as string[];
   const separte = Math.floor(v.length / MAX);
   console.log(`package count: ${v.length},file count: ${separte}`);
-  for (let count = 0; count <= separte; count++) {
+  for (let count = start; count <= separte; count++) {
     console.log(`start ${count}/${separte}`);
     const start = count * MAX;
     const goal = (count + 1) * MAX - 1 > v.length ? v.length - 1 : (count + 1) * MAX - 1;
