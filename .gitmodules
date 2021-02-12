@@ -1,0 +1,3 @@
+[submodule "all-the-package-names"]
+	path = all-the-package-names
+	url = git@github.com:sh4869/all-the-package-names.git
