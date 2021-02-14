@@ -94,3 +94,4 @@ result/*
 !result/.gitkeep
 log*
 names.json
+.vscode
