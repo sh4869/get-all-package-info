@@ -19,6 +19,8 @@
   },
   "homepage": "https://github.com/sh4869/pcs#readme",
   "dependencies": {
+    "dayjs": "^1.10.4",
+    "log4js": "^6.3.0",
     "node-fetch": "^2.6.1",
     "package-json": "^6.4.0"
   },
