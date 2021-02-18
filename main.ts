@@ -18,7 +18,7 @@ const logger = getLogger();
 
 const sleep: (number: number) => Promise<void> = msec => new Promise<void>(resolve => setTimeout(resolve, msec));
 
-const url = (name: string): string => `https://registry.npmjs.org/${encodeURIComponent(name)}`;
+const url = (name: string): string => `https://registry.yarnpkg.com/${encodeURIComponent(name)}`;
 const fetchPkg = async (name: string, count = 0): Promise<Data> => {
   try {
     return await fetch(url(name))
@@ -41,10 +41,14 @@ const convertData = (data: Data) => {
       const d = pkgData as PkgData;
       return {
         name: data.name,
-        versions: Array.from(Object.keys(d.versions)).map(version => ({
-          version: version,
-          dep: d.versions[version].dependencies
-        }))
+        versions: Array.from(Object.keys(d.versions))
+          .map(version => ({
+            version: version,
+            dep: d.versions[version].dependencies,
+            shasum: d.versions[version].dist.shasum,
+            integrity: d.versions[version].dist.integrity
+          }))
+          .filter(v => v.shasum != null)
       };
     } else {
       return data.name;
@@ -77,10 +81,12 @@ const writeToFileAndReturnErrors = (e: Data[], index: number): string[] => {
   const result = e.map(x => convertData(x));
   const errors: string[] = result.filter<string>((v): v is string => typeof v == "string");
   const ok = result.filter(v => typeof v != "string");
-  if (errors.length > 1) logger.error(`error on request ${errors.length} package: ${errors.join(",")}`);
-  logger.info(`ok: ${ok.length}, error: ${errors.length}`);
+  if (errors.length > 1) {
+    logger.error(`error on request ${errors.length} package: `);
+  }
+  logger.info(`ok: ${ok.length}, error: ${errors.length} (${errors.join(",")})`);
   logger.info(`writing into file ${ok.length} packages`);
-  writeFileSync(`result/${index}.json`, JSON.stringify(ok));
+  writeFileSync(`result/${index}.json`, JSON.stringify(ok, null, 1));
   return errors;
 };
 
