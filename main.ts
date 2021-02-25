@@ -42,12 +42,26 @@ const convertData = (data: Data) => {
       return {
         name: data.name,
         versions: Array.from(Object.keys(d.versions))
-          .map(version => ({
-            version: version,
-            dep: d.versions[version].dependencies,
-            shasum: d.versions[version].dist.shasum,
-            integrity: d.versions[version].dist.integrity
-          }))
+          .map(version => {
+            const x = d.versions[version];
+            let deps;
+            if (x.optionalDependencies !== undefined) {
+              deps = Object.keys(x.dependencies || {})
+                .filter(v => !Object.keys(x.optionalDependencies || {}).includes(v))
+                .reduce((obj, key) => {
+                  obj[key] = x.dependencies ? x.dependencies[key] : "INVALID";
+                  return obj;
+                }, {});
+            } else {
+              deps = x.dependencies;
+            }
+            return {
+              version: version,
+              dep: deps,
+              shasum: x.dist.shasum,
+              integrity: x.dist.integrity
+            };
+          })
           .filter(v => v.shasum != null)
       };
     } else {
@@ -86,7 +100,7 @@ const writeToFileAndReturnErrors = (e: Data[], index: number): string[] => {
   }
   logger.info(`ok: ${ok.length}, error: ${errors.length} (${errors.join(",")})`);
   logger.info(`writing into file ${ok.length} packages`);
-  writeFileSync(`result/${index}.json`, JSON.stringify(ok, null, 1));
+  writeFileSync(`result/${index}.json`, JSON.stringify(ok));
   return errors;
 };
 
