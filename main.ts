@@ -20,18 +20,22 @@ const sleep: (number: number) => Promise<void> = msec => new Promise<void>(resol
 
 const url = (name: string): string => `https://registry.yarnpkg.com/${encodeURIComponent(name)}`;
 const fetchPkg = async (name: string, count = 0): Promise<Data> => {
-  try {
-    return await fetch(url(name))
-      .then(v => v.json())
-      .then(v => ({ name: name, data: v } as Data));
-  } catch {
-    if (count > 5) {
-      logger.error(`error on request ${name} package 5 times`);
-      return { name, data: {} };
+  while (count < 5) {
+    try {
+      if (count > 0) logger.info(`${name} on ${count}`);
+      return await Promise.race([
+        sleep(10000).then(_ => {
+          throw new Error("aaa");
+        }),
+        fetch(url(name))
+          .then(v => v.json())
+          .then(v => ({ name: name, data: v } as Data))
+      ]);
+    } catch {
+      count++;
     }
-    await sleep(300);
-    return fetchPkg(name, count++);
   }
+  return { name, data: {} };
 };
 
 const convertData = (data: Data) => {
@@ -115,7 +119,7 @@ const main = async (): Promise<void> => {
     const start = count * MAX;
     const goal = (count + 1) * MAX - 1 > names.length ? names.length - 1 : (count + 1) * MAX - 1;
     logger.info(`start ${count}/${separte}: ${start} -> ${goal} (${goal - start})`);
-    const arr = requests(names.slice(start, goal));
+    const arr = requests(names.slice(start, goal), 10);
     await Promise.all(arr).then(v => writeToFileAndReturnErrors(v, count));
   }
 };
