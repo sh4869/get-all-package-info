@@ -95,3 +95,5 @@ result/*
 log*
 names.json
 .vscode
+
+test.txt
