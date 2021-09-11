@@ -1,5 +1,5 @@
 import packagejson = require("package-json");
-import { readFileSync, writeFileSync } from "fs";
+import { appendFile, appendFileSync, fstat, readFileSync, writeFileSync } from "fs";
 import fetch from "node-fetch";
 import { configure, getLogger } from "log4js";
 import dayjs from "dayjs";
@@ -18,13 +18,13 @@ const logger = getLogger();
 
 const sleep: (number: number) => Promise<void> = msec => new Promise<void>(resolve => setTimeout(resolve, msec));
 
-const url = (name: string): string => `https://registry.yarnpkg.com/${encodeURIComponent(name)}`;
+const url = (name: string): string => `https://registry.npmjs.org/${encodeURIComponent(name)}`;
 const fetchPkg = async (name: string, count = 0): Promise<Data> => {
   while (count < 5) {
     try {
-      if (count > 0) logger.info(`${name} on ${count}`);
+      await sleep(10000 * (count - 1));
       return await Promise.race([
-        sleep(10000).then(_ => {
+        sleep(30000 * count).then(_ => {
           throw new Error("aaa");
         }),
         fetch(url(name))
@@ -100,7 +100,8 @@ const writeToFileAndReturnErrors = (e: Data[], index: number): string[] => {
   const errors: string[] = result.filter<string>((v): v is string => typeof v == "string");
   const ok = result.filter(v => typeof v != "string");
   if (errors.length > 1) {
-    logger.error(`error on request ${errors.length} package: `);
+    logger.error(`error on request ${errors.length} package`);
+    appendFileSync("test.txt", errors.join("\n") + "\n");
   }
   logger.info(`ok: ${ok.length}, error: ${errors.length} (${errors.join(",")})`);
   logger.info(`writing into file ${ok.length} packages`);
@@ -117,7 +118,7 @@ const main = async (): Promise<void> => {
   logger.info(`package count: ${names.length},file count: ${separte}`);
   for (let count = start; count <= separte; count++) {
     const start = count * MAX;
-    const goal = (count + 1) * MAX - 1 > names.length ? names.length - 1 : (count + 1) * MAX - 1;
+    const goal = (count + 1) * MAX - 1 > names.length ? names.length : (count + 1) * MAX;
     logger.info(`start ${count}/${separte}: ${start} -> ${goal} (${goal - start})`);
     const arr = requests(names.slice(start, goal), 10);
     await Promise.all(arr).then(v => writeToFileAndReturnErrors(v, count));
