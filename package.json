@@ -19,12 +19,14 @@
   },
   "homepage": "https://github.com/sh4869/pcs#readme",
   "dependencies": {
+    "command-line-args": "^5.2.0",
     "dayjs": "^1.10.4",
     "log4js": "^6.3.0",
     "node-fetch": "^2.6.1",
     "package-json": "^6.4.0"
   },
   "devDependencies": {
+    "@types/command-line-args": "^5.2.0",
     "@types/node": "^12.7.2",
     "@types/node-fetch": "^2.5.8",
     "@types/npm-registry-package-info": "^1.0.0",
