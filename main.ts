@@ -1,11 +1,9 @@
 import packagejson = require("package-json");
+import commandLineArgs, { OptionDefinition } from "command-line-args";
 import dayjs from "dayjs";
 import { appendFileSync, readFileSync, writeFileSync } from "fs";
-import { promises } from "fs";
 import { configure, getLogger } from "log4js";
 import fetch from "node-fetch";
-import commandLineArgs, { OptionDefinition } from "command-line-args";
-import { sep } from "path";
 
 interface PkgData {
   versions: { [key: string]: packagejson.AbbreviatedVersion };
@@ -107,7 +105,7 @@ const writeToFileAndReturnErrors = (e: Data[], index: number, dest: string, erro
     logger.error(`error on request ${errors.length} package`);
     appendFileSync(errorFile, errors.join("\n") + "\n");
   }
-  logger.info(`ok: ${ok.length}, error: ${errors.length} (${errors.join(",")})`);
+  logger.info(`ok: ${ok.length}, error: ${errors.length} (${errors[0]},${errors[1]},...)`);
   logger.info(`writing into file ${ok.length} packages`);
   writeFileSync(`${dest}/${index}.json`, JSON.stringify(ok));
   return errors;
@@ -119,7 +117,8 @@ const argOptions: OptionDefinition[] = [
   { name: "dest", defaultValue: "result", type: String },
   { name: "retry-error", defaultValue: true, type: Boolean },
   { name: "start", defaultValue: 0, type: Number },
-  { name: "max", defaultValue: 20000, type: Number }
+  { name: "max", defaultValue: 20000, type: Number },
+  { name: "skip-main", defaultValue: false, type: Boolean }
 ];
 
 const options = commandLineArgs(argOptions);
@@ -131,26 +130,29 @@ const main = async (): Promise<void> => {
   const names = JSON.parse(readFileSync(options["name-file"]).toString()) as string[];
   const separte = Math.floor(names.length / MAX);
   logger.info(`package count: ${names.length},file count: ${separte}`);
-  for (let count = start; count <= separte; count++) {
-    const start = count * MAX;
-    const goal = Math.min(names.length, (count + 1) * MAX);
-    logger.info(`start ${count}/${separte}: ${start} -> ${goal} (${goal - start})`);
-    const arr = requests(names.slice(start, goal), 5);
-    await Promise.all(arr).then(v => writeToFileAndReturnErrors(v, count, options["dest"], options["error-file"]));
+  if (!options["skip-main"]) {
+    for (let count = start; count <= separte; count++) {
+      const start = count * MAX;
+      const goal = Math.min(names.length, (count + 1) * MAX);
+      logger.info(`start ${count}/${separte}: ${start} -> ${goal} (${goal - start})`);
+      const arr = requests(names.slice(start, goal), 5);
+      await Promise.all(arr).then(v => writeToFileAndReturnErrors(v, count, options["dest"], options["error-file"]));
+    }
   }
   // エラーをやるやつ
   if (options["retry-error"]) {
+    const ERROR_MAX = 2000;
     const errorPackages = readFileSync(options["error-file"])
       .toString()
       .split("\n")
       .filter((v, i, a) => a.indexOf(v) === i);
     logger.info(`error package count: ${errorPackages.length}`);
-    const s = Math.floor(errorPackages.length / MAX);
+    const s = Math.floor(errorPackages.length / ERROR_MAX);
     for (let count = 0; count <= s; count++) {
-      const start = count * MAX;
-      const goal = Math.min(count + 1 * MAX, errorPackages.length);
+      const start = count * ERROR_MAX;
+      const goal = Math.min((count + 1) * ERROR_MAX, errorPackages.length);
       logger.info(`start error ${count + separte + 1}/${s + separte + 1}: ${start} -> ${goal}`);
-      const arr = requests(errorPackages.slice(start, goal), 300);
+      const arr = requests(errorPackages.slice(start, goal), 1000);
       await Promise.all(arr).then(v =>
         writeToFileAndReturnErrors(v, count + separte + 1, options["dest"], options["error-file"])
       );
