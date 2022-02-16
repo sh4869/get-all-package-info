@@ -21,6 +21,8 @@ const sleep: (number: number) => Promise<void> = msec => new Promise<void>(resol
 
 const url = (name: string): string => `https://registry.npmjs.org/${encodeURIComponent(name)}`;
 
+class NotFoundError extends Error {}
+
 const fetchPkg = async (name: string, count = 0): Promise<Data> => {
   while (count < 5) {
     try {
@@ -30,10 +32,17 @@ const fetchPkg = async (name: string, count = 0): Promise<Data> => {
           throw new Error("aaa");
         }),
         fetch(url(name))
-          .then(v => v.json())
+          .then(v => {
+            if (v.ok) return v.json();
+            if (v.status === 404) throw new NotFoundError(`error on package ${name}`);
+            else throw new Error("other error");
+          })
           .then(v => ({ name: name, data: v } as Data))
       ]);
-    } catch {
+    } catch (e) {
+      if (e instanceof NotFoundError) {
+        return { name, data: {} };
+      }
       count++;
     }
   }
