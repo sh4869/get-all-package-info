@@ -91,13 +91,14 @@ const requests = (names: string[], interval = 5): Promise<Data>[] => {
   const arr: Promise<Data>[] = [];
   let sleeptime = 0;
   let complete = 0;
+  const logTime = names.length / 10;
   for (let i = 0; i < names.length; i++) {
     arr.push(
       sleep(sleeptime)
         .then(_ => fetchPkg(names[i]))
         .then(v => {
           complete += 1;
-          if (complete % 1000 == 0) logger.info(`end ${complete}/${names.length}`);
+          if (complete % logTime == 0) logger.info(`end ${complete}/${names.length}`);
           return v;
         })
     );
