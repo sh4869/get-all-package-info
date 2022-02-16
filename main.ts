@@ -27,21 +27,16 @@ const fetchPkg = async (name: string, count = 0): Promise<Data> => {
   while (count < 5) {
     try {
       await sleep(10000 * (count - 1));
-      return await Promise.race([
-        sleep(30000 * count).then(_ => {
-          throw new Error("aaa");
-        }),
-        fetch(url(name))
-          .then(v => {
-            if (v.ok) return v.json();
-            if (v.status === 404) throw new NotFoundError(`error on package ${name}`);
-            else throw new Error("other error");
-          })
-          .then(v => ({ name: name, data: v } as Data))
-      ]);
+      return await fetch(url(name), { timeout: 30000 })
+        .then(v => {
+          if (v.ok) return v.json();
+          if (v.status === 404) throw new NotFoundError(`error on package ${name}`);
+          else throw new Error("other error");
+        })
+        .then(v => ({ name: name, data: v } as Data));
     } catch (e) {
       if (e instanceof NotFoundError) {
-        return { name, data: {} };
+        count = 5;
       }
       count++;
     }
@@ -104,6 +99,7 @@ const requests = (names: string[], interval = 5): Promise<Data>[] => {
     );
     sleeptime += interval;
   }
+  logger.info(`set up promise array, ${logTime}`);
   return arr;
 };
 
@@ -162,7 +158,7 @@ const main = async (): Promise<void> => {
       const start = count * ERROR_MAX;
       const goal = Math.min((count + 1) * ERROR_MAX, errorPackages.length);
       logger.info(`start error ${count + separte + 1}/${s + separte + 1}: ${start} -> ${goal}`);
-      const arr = requests(errorPackages.slice(start, goal), 1000);
+      const arr = requests(errorPackages.slice(start, goal), 200);
       await Promise.all(arr).then(v =>
         writeToFileAndReturnErrors(v, count + separte + 1, options["dest"], options["error-file"])
       );
